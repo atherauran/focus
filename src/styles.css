@@ -1,0 +1,120 @@
+:root {
+  --bg: #120d0a;
+  --bg-2: #1b1410;
+  --line: #3a2e25;
+  --text: #e4d3c1;
+  --muted: #a8927e;
+  --accent: #b9804f;
+  --accent-soft: rgba(185, 128, 79, 0.18);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: radial-gradient(120% 80% at 50% 0%, #1c1510 0%, var(--bg) 60%) fixed, var(--bg);
+  color: var(--text);
+  font: 15px/1.4 ui-sans-serif, -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 44px;
+  padding: 48px 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Play button */
+.play {
+  --glow: 0;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  box-shadow:
+    0 0 calc(18px + 46px * var(--glow)) calc(-4px + 10px * var(--glow)) rgba(185, 128, 79, calc(0.12 + 0.4 * var(--glow))),
+    inset 0 0 24px rgba(185, 128, 79, 0.06);
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+.play:hover { background: var(--accent-soft); }
+.play:active { transform: scale(0.97); }
+.play svg { width: 34px; height: 34px; fill: currentColor; }
+.play.loading { animation: breathe 1.4s ease-in-out infinite; }
+@keyframes breathe { 50% { opacity: 0.45; } }
+
+/* Sliders */
+.sliders { width: 100%; display: grid; gap: 18px; }
+.slider { display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 14px; }
+.slider span { color: var(--muted); font-size: 14px; letter-spacing: 0.04em; }
+
+input[type="range"] {
+  --v: 0.5;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) calc(var(--v) * 100%), var(--line) calc(var(--v) * 100%));
+}
+input[type="range"]::-moz-range-track { height: 2px; border-radius: 2px; background: var(--line); }
+input[type="range"]::-moz-range-progress { height: 2px; border-radius: 2px; background: var(--accent); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--bg);
+  transition: transform 0.15s ease;
+}
+input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--bg); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
+
+/* Presets */
+.presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+.presets button {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+  border: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.presets button:hover { color: var(--text); }
+.presets button.on { color: var(--text); border-color: var(--line); background: var(--bg-2); }
+
+/* Tempo */
+.tempo { height: 28px; display: flex; align-items: center; width: 100%; justify-content: center; }
+.bpm-readout { color: var(--muted); font-size: 13.5px; font-variant-numeric: tabular-nums; opacity: 0.85; padding: 4px 8px; }
+.bpm-readout:hover { opacity: 1; color: var(--text); }
+.tempo-row { display: grid; grid-template-columns: 1fr 34px auto auto; align-items: center; gap: 10px; width: 100%; }
+.tempo-row .bpm { color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
+.tempo-row .auto { color: var(--muted); font-size: 13.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); }
+.tempo-row .auto.on { color: var(--accent); border-color: var(--accent); }
+.tempo-row .close { color: var(--muted); font-size: 18px; padding: 0 4px; }
+
+@media (max-width: 380px) {
+  .slider { grid-template-columns: 90px 1fr; }
+  .app { gap: 36px; }
+}
