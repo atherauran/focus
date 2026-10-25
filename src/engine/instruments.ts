@@ -74,13 +74,37 @@ export class SampledVoice implements Voice {
   }
 }
 
-/** Warm analog-style pad (also used for low drones). */
+const PAD_ENV = { attack: 1.6, decay: 2, sustain: 0.75, release: 3.5 };
+const PAD_DETUNE = [-8, 0, 8]; // cents
+const PAD_OSC_GAIN = Tone.dbToGain(-9.3);
+// Tone's 'sine' attack curve.
+const SINE_IN = Array.from({ length: 128 }, (_, i) => 0.5 * (1 - Math.cos((Math.PI * i) / 127)));
+
+/** Band-limited sawtooth starting at the given phase (same partials as Tone's oscillator). */
+function sawWave(ctx: Tone.BaseContext, phase: number) {
+  const n = 2048;
+  const real = new Float32Array(n);
+  const imag = new Float32Array(n);
+  for (let k = 1; k < n; k++) {
+    const b = (2 / (k * Math.PI)) * (k & 1 ? 1 : -1);
+    real[k] = -b * Math.sin(phase * k);
+    imag[k] = b * Math.cos(phase * k);
+  }
+  return ctx.createPeriodicWave(real, imag);
+}
+
+/**
+ * Warm analog-style pad (also used for low drones): three detuned saws per note, the same
+ * sound as Tone's fatsawtooth synth but built from bare oscillators with fixed pitch, which
+ * costs a fraction of the CPU.
+ */
 export class PadVoice implements Voice {
   output = new Tone.Gain(1);
-  private synth: Tone.PolySynth;
   private filter: Tone.Filter;
   private chorus: Tone.Chorus;
   private lfo: Tone.LFO;
+  private waves: PeriodicWave[];
+  private notes = new Set<Tone.Gain>();
 
   constructor() {
     this.chorus = new Tone.Chorus({ frequency: 0.35, delayTime: 4.5, depth: 0.6, spread: 160, wet: 0.6 }).connect(this.output);
@@ -88,23 +112,37 @@ export class PadVoice implements Voice {
     this.filter = new Tone.Filter({ frequency: 900, type: 'lowpass', rolloff: -24, Q: 0.4 }).connect(this.chorus);
     this.lfo = new Tone.LFO({ frequency: 0.07, min: 650, max: 1300 }).connect(this.filter.frequency);
     this.lfo.start();
-    this.synth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'fatsawtooth', count: 3, spread: 16 },
-      envelope: { attack: 1.6, decay: 2, sustain: 0.75, release: 3.5, attackCurve: 'sine', releaseCurve: 'exponential' },
-    }).connect(this.filter);
-    this.synth.maxPolyphony = 24;
+    this.waves = [0, 120, 240].map((deg) => sawWave(this.output.context, (deg * Math.PI) / 180));
   }
 
   play(midi: number, dur: number, time: number, vel: number) {
-    this.synth.triggerAttackRelease(Tone.mtof(midi as Tone.Unit.MidiNote), dur, time, velGain(vel));
+    const ctx = this.output.context;
+    const env = new Tone.Gain({ context: ctx, gain: 0 }).connect(this.filter);
+    const peak = velGain(vel) * PAD_OSC_GAIN;
+    const { attack, decay, sustain, release } = PAD_ENV;
+    env.gain.setValueCurveAtTime(SINE_IN, time, attack, peak);
+    env.gain.exponentialApproachValueAtTime(peak * sustain, time + attack, decay);
+    env.gain.targetRampTo(0, release, time + dur);
+    const freq = Tone.mtof(midi as Tone.Unit.MidiNote);
+    this.waves.forEach((wave, i) => {
+      const osc = ctx.createOscillator();
+      osc.setPeriodicWave(wave);
+      osc.frequency.value = freq;
+      osc.detune.value = PAD_DETUNE[i];
+      osc.connect(env.input);
+      osc.start(time);
+      osc.stop(time + dur + release);
+      if (i === 0) osc.onended = () => (this.notes.delete(env), env.dispose());
+    });
+    this.notes.add(env);
   }
 
-  release(time?: number) {
-    this.synth.releaseAll(time);
+  release(time = this.output.context.currentTime) {
+    for (const env of this.notes) env.gain.targetRampTo(0, PAD_ENV.release, time);
   }
 
   dispose() {
-    this.synth.dispose();
+    for (const env of this.notes) env.dispose();
     this.filter.dispose();
     this.lfo.dispose();
     this.chorus.dispose();
@@ -141,9 +179,9 @@ export class DrumVoice implements Voice {
     }
     this.buses.set('kick', new Tone.Panner(0).connect(this.output));
     // Brush circles: soft band-limited noise swells. Taps: short bright bursts.
-    const swishBand = new Tone.Filter({ frequency: 3200, type: 'bandpass', Q: 0.6 }).connect(this.buses.get('swish')!);
+    const swishBand = new Tone.BiquadFilter({ frequency: 3200, type: 'bandpass', Q: 0.6 }).connect(this.buses.get('swish')!);
     this.swish = new Tone.NoiseSynth({ noise: { type: 'pink' }, envelope: { attack: 0.09, decay: 0.32, sustain: 0, release: 0.12 } }).connect(swishBand);
-    const tapBand = new Tone.Filter({ frequency: 4200, type: 'bandpass', Q: 0.9 }).connect(this.buses.get('brush')!);
+    const tapBand = new Tone.BiquadFilter({ frequency: 4200, type: 'bandpass', Q: 0.9 }).connect(this.buses.get('brush')!);
     this.tap = new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.002, decay: 0.11, sustain: 0, release: 0.05 } }).connect(tapBand);
   }
 

@@ -56,9 +56,10 @@ export default function App() {
       return;
     }
     setStatus('loading');
+    // Nothing here needs low latency; bigger audio buffers roughly halve the audio thread's CPU.
+    if (!engine.current) Tone.setContext(new Tone.Context({ latencyHint: 'playback', lookAhead: 0.2 }));
     await Tone.start();
     if (!engine.current) {
-      Tone.getContext().lookAhead = 0.2;
       engine.current = new Engine({
         seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0,
         params: paramsRef.current,
@@ -105,11 +106,13 @@ export default function App() {
     }
     let raf = 0;
     let smooth = 0;
+    let shown = '';
     const tick = () => {
       const m = engine.current?.meter?.getValue();
       const v = typeof m === 'number' ? m : 0;
       smooth += (Math.min(1, v * 3) - smooth) * 0.08;
-      glow.current?.style.setProperty('--glow', smooth.toFixed(3));
+      const next = smooth.toFixed(2);
+      if (next !== shown) glow.current?.style.setProperty('--glow', (shown = next));
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

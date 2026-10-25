@@ -11,7 +11,7 @@ const OUTPUT = Tone.dbToGain(-15);
 interface Channel {
   voice: Voice;
   input: Tone.Gain;
-  filter: Tone.Filter;
+  filter: Tone.BiquadFilter;
   out: Tone.Panner;
   room: Tone.Gain;
   hall: Tone.Gain;
@@ -65,8 +65,8 @@ export class Engine {
   private loading = new Map<Inst, Promise<void>>();
   private transport = Tone.getTransport();
   private master: Tone.Gain;
-  private tone: Tone.Filter;
-  private lowShelf: Tone.Filter;
+  private tone: Tone.BiquadFilter;
+  private lowShelf: Tone.BiquadFilter;
   private wow: Tone.Vibrato;
   private shaper: Tone.WaveShaper;
   private leveler: Tone.Compressor;
@@ -76,7 +76,7 @@ export class Engine {
   private roomBus: Tone.Convolver;
   private hallBus: Tone.Convolver;
   private echoBus: Tone.FeedbackDelay;
-  private echoTone: Tone.Filter;
+  private echoTone: Tone.BiquadFilter;
   readonly meter: Tone.Meter | null;
   private style: Style = 'jazz';
   private running = false;
@@ -96,8 +96,8 @@ export class Engine {
     // Slow leveler: evens out loudness between pieces (a solo piano vs. a full trio).
     this.leveler = new Tone.Compressor({ threshold: -30, ratio: 2.6, attack: 0.6, release: 1, knee: 8 }).connect(this.shaper);
     this.wow = new Tone.Vibrato({ frequency: 0.55, depth: 0, maxDelay: 0.006, type: 'sine' }).connect(this.leveler);
-    this.lowShelf = new Tone.Filter({ type: 'lowshelf', frequency: 160, gain: 0.5 }).connect(this.wow);
-    this.tone = new Tone.Filter({ type: 'lowpass', frequency: 12000, rolloff: -12, Q: 0.5 }).connect(this.lowShelf);
+    this.lowShelf = new Tone.BiquadFilter({ type: 'lowshelf', frequency: 160, gain: 0.5 }).connect(this.wow);
+    this.tone = new Tone.BiquadFilter({ type: 'lowpass', frequency: 12000, Q: 0.5 }).connect(this.lowShelf);
     this.master = new Tone.Gain(1).connect(this.tone);
     this.meter = o.offline ? null : new Tone.Meter({ smoothing: 0.85, normalRange: true });
     if (this.meter) this.limiter.connect(this.meter);
@@ -106,7 +106,7 @@ export class Engine {
     this.roomBus.buffer = new Tone.ToneAudioBuffer(makeImpulse({ seconds: 1.6, rt60: 0.85, predelay: 0.006, brightness: 9000, darkening: 2500, early: 0.6, seed: 11 }));
     this.hallBus = new Tone.Convolver({ normalize: false }).connect(this.master);
     this.hallBus.buffer = new Tone.ToneAudioBuffer(makeImpulse({ seconds: 6, rt60: 3.6, predelay: 0.028, brightness: 6500, darkening: 900, early: 0.3, seed: 23 }));
-    this.echoTone = new Tone.Filter({ type: 'lowpass', frequency: 2600, rolloff: -12 }).connect(this.hallBus);
+    this.echoTone = new Tone.BiquadFilter({ type: 'lowpass', frequency: 2600 }).connect(this.hallBus);
     this.echoTone.connect(this.master);
     this.echoBus = new Tone.FeedbackDelay({ delayTime: 0.5, feedback: 0.32, maxDelay: 2 }).connect(this.echoTone);
   }
@@ -123,8 +123,8 @@ export class Engine {
       const voice = await createVoice(id);
       const s = INST[id];
       const out = new Tone.Panner(s.pan).connect(this.master);
-      const filter = new Tone.Filter({ type: 'lowpass', frequency: s.lp, rolloff: -12, Q: 0.3 });
-      const hp = new Tone.Filter({ type: 'highpass', frequency: s.hp, rolloff: -12 });
+      const filter = new Tone.BiquadFilter({ type: 'lowpass', frequency: s.lp, Q: 0.3 });
+      const hp = new Tone.BiquadFilter({ type: 'highpass', frequency: s.hp });
       const input = new Tone.Gain(Tone.dbToGain(s.gain));
       const extra: Tone.ToneAudioNode[] = [hp];
       voice.output.connect(input);

@@ -46,10 +46,22 @@ button:focus-visible, input:focus-visible { outline: 1px solid var(--accent); ou
   display: grid;
   place-items: center;
   color: var(--accent);
+  position: relative;
   box-shadow:
-    0 0 calc(18px + 46px * var(--glow)) calc(-4px + 10px * var(--glow)) rgba(185, 128, 79, calc(0.12 + 0.4 * var(--glow))),
+    0 0 18px -4px rgba(185, 128, 79, 0.12),
     inset 0 0 24px rgba(185, 128, 79, 0.06);
   transition: transform 0.2s ease, background-color 0.3s ease;
+}
+/* The glow fades a fixed shadow in and out: opacity only, so it never repaints. */
+.play::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 64px 6px rgba(185, 128, 79, 0.4);
+  opacity: var(--glow);
+  will-change: opacity;
+  pointer-events: none;
 }
 .play:hover { background: var(--accent-soft); }
 .play:active { transform: scale(0.97); }
