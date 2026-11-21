@@ -245,12 +245,14 @@ export interface InstSpec {
 
 export const INST: Record<Inst, InstSpec> = {
   piano: { gain: -7, lp: 16000, hp: 30, pan: 0, room: 0.5, hall: 0.85, echo: 0, release: 1.1, split: 0.55 },
+  felt: { gain: -6, lp: 4200, hp: 35, pan: 0, room: 0.65, hall: 0.8, echo: 0, release: 1.4, split: 0.55 },
   rhodes: { gain: -9, lp: 10000, hp: 45, pan: 0, room: 0.5, hall: 0.7, echo: 0.1, release: 0.7, split: 0.45, trem: { freq: 4.2, depth: 0.28 } },
   upright: { gain: -9, lp: 2400, hp: 32, pan: 0.05, room: 0.35, hall: 0.18, echo: 0, release: 0.25 },
-  ebass: { gain: -10, lp: 1600, hp: 32, pan: 0, room: 0.25, hall: 0.12, echo: 0, release: 0.2 },
   nylon: { gain: -8, lp: 11000, hp: 70, pan: -0.18, room: 0.5, hall: 0.6, echo: 0.05, release: 0.6 },
-  jazzgtr: { gain: -9, lp: 6500, hp: 90, pan: 0.18, room: 0.55, hall: 0.6, echo: 0.15, release: 0.35 },
-  flute: { gain: -12, lp: 9000, hp: 200, pan: 0.12, room: 0.45, hall: 1, echo: 0.25, attack: 0.03, release: 0.35 },
+  flute: { gain: -12, lp: 9000, hp: 200, pan: 0.12, room: 0.45, hall: 1, echo: 0.25, attack: 0.05, release: 0.35 },
+  clarinet: { gain: -11, lp: 8000, hp: 110, pan: -0.12, room: 0.45, hall: 0.95, echo: 0.1, attack: 0.05, release: 0.4, split: 0.5 },
+  strings: { gain: -13, lp: 9000, hp: 45, pan: 0, room: 0.3, hall: 1.2, echo: 0, attack: 0.4, release: 1.6, split: 0.55 },
+  marimba: { gain: -9, lp: 9000, hp: 70, pan: -0.15, room: 0.5, hall: 0.8, echo: 0.1, release: 0.5, split: 0.5 },
   vibes: { gain: -11, lp: 9000, hp: 120, pan: 0.15, room: 0.5, hall: 1, echo: 0.2, release: 1.2, split: 0.5, trem: { freq: 5.2, depth: 0.18 } },
   bowedvibes: { gain: -15, lp: 7000, hp: 150, pan: 0, room: 0.3, hall: 1.3, echo: 0, attack: 0.35, release: 2.2 },
   glock: { gain: -17, lp: 10000, hp: 400, pan: -0.1, room: 0.4, hall: 1.2, echo: 0.35, release: 1.6 },

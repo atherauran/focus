@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Composer } from '../src/composer/composer';
 import { planPiece } from '../src/composer/piece';
+import { arrangementById } from '../src/composer/arrangements';
 import { chordTones, mod12, stableTones } from '../src/composer/theory';
 import type { Bar, Params } from '../src/composer/types';
 import { voice } from '../src/composer/voicing';
@@ -74,14 +75,18 @@ describe('pieces', () => {
     }
   });
 
-  it('pieces end with a ritardando and are separated by a gap', () => {
+  it('pieces end with a ritardando (beat tapes keep time) and segue into the next', () => {
     const bars = run(3, MID, 12);
     const gaps = bars.filter((b) => b.gap);
     expect(gaps.length).toBeGreaterThan(1);
     for (const g of gaps) {
       const i = bars.indexOf(g);
-      expect(bars[i - 1].tempo).toBeLessThan(bars[i - 1].baseTempo * 0.9);
-      expect(g.events.length).toBe(0);
+      if (arrangementById(g.arrangement).form !== 'loop') expect(bars[i - 1].tempo).toBeLessThan(bars[i - 1].baseTempo * 0.9);
+      // The segue: a soft chord in the new key, already at the new piece's tempo.
+      expect(g.events.length).toBeGreaterThan(0);
+      for (const e of g.events) expect(e.role === 'pad' && e.vel < 0.3).toBe(true);
+      const nextBar = bars[i + 1];
+      if (nextBar) expect(nextBar.bar).toBe(0), expect(g.tempo).toBeCloseTo(nextBar.baseTempo, 5), expect(g.key).toEqual(nextBar.key);
     }
   });
 });

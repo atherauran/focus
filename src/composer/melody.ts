@@ -104,8 +104,8 @@ const RHYTHMS: Record<string, { motif: Cell[]; busy: Cell[]; cadence: Cell[] }> 
 
 export function rhythmBank(style: Style, beats: number) {
   if (beats === 3) return RHYTHMS.waltz3;
-  if (style === 'lofi') return RHYTHMS.lofi4;
-  if (style === 'ballad' || style === 'ambient') return RHYTHMS.ballad4;
+  if (style === 'lofi' || style === 'beats') return RHYTHMS.lofi4;
+  if (style === 'ballad' || style === 'ambient' || style === 'cinematic') return RHYTHMS.ballad4;
   if (style === 'bossa' || style === 'folk') return RHYTHMS.straight4;
   return RHYTHMS.swing4;
 }
@@ -163,7 +163,7 @@ export function makeMotif(rng: Rng, style: Style, beats: number, complexity: num
     answer,
     steps: contour(rng, 24, complexity),
     start: rng.weighted([[1, 0.45], [2, 0.35], [0, 0.2]] as const),
-    pickup: rng.chance(style === 'ambient' ? 0.15 : 0.4),
+    pickup: rng.chance(style === 'ambient' ? 0.15 : style === 'cinematic' ? 0.3 : 0.4),
   };
 }
 
@@ -367,8 +367,11 @@ export function composeSection(o: SectionMelodyOpts, ctx: MelodyCtx): MelNote[][
       return cell.length > 1 ? breathe(cell.slice(0, -1), room) : cell;
     };
     if (o.mode !== 'sparse') {
-      if (r2.chance(0.45)) rhythms[0] = breathe(rhythms[0], 0.5);
-      if (n > 1 && r1.chance(0.7)) rhythms[1] = breathe(rhythms[1], o.mode === 'improv' ? 0.5 : 1);
+      // Slow, sustained styles need more air or the line never stops singing.
+      const slow = bank === RHYTHMS.ballad4 || bank === RHYTHMS.waltz3;
+      if (r2.chance(slow ? 0.75 : 0.45)) rhythms[0] = breathe(rhythms[0], slow ? 1 : 0.5);
+      if (n > 1 && r1.chance(slow ? 0.85 : 0.7)) rhythms[1] = breathe(rhythms[1], o.mode === 'improv' ? 0.5 : 1);
+      if (slow && n === 4 && r2.chance(0.5)) rhythms[3] = breathe(rhythms[3], 1);
       if (n === 4 && o.mode !== 'improv' && r2.chance(0.2)) rhythms[2] = rhythms[2].filter(([t]) => t >= 2);
     }
     const steps = o.mode === 'improv' ? contour(r2, 32, o.complexity) : o.mode === 'themeVar' && ph % 2 === 1 ? [...m.steps.slice(0, 6), ...contour(r2, 16, o.complexity)] : m.steps;

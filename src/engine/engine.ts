@@ -1,12 +1,13 @@
 import * as Tone from 'tone';
 import { Composer } from '../composer/composer';
+import type { History } from '../composer/piece';
 import type { Bar, Inst, NoteEvent, Params, Style } from '../composer/types';
 import { ALL_INSTS, INST, Voice, createVoice } from './instruments';
 import { makeImpulse } from './reverb';
 
 const PPQ = 960;
 /** Final output level, after the limiter. */
-const OUTPUT = Tone.dbToGain(-15);
+const OUTPUT = Tone.dbToGain(-12);
 
 interface Channel {
   voice: Voice;
@@ -28,11 +29,15 @@ const FLAVOR: Record<Style, { lpDark: number; lpBright: number; wow: number; dri
   bossa: { lpDark: 10000, lpBright: 19000, wow: 0, drive: 0.2 },
   ambient: { lpDark: 8000, lpBright: 17000, wow: 0.04, drive: 0.15 },
   folk: { lpDark: 10000, lpBright: 19000, wow: 0, drive: 0.2 },
+  cinematic: { lpDark: 9000, lpBright: 18000, wow: 0.02, drive: 0.15 },
+  beats: { lpDark: 7000, lpBright: 12500, wow: 0.18, drive: 0.55 },
 };
 
 export interface EngineOptions {
   seed: number;
   params: Params;
+  /** what played in earlier sessions */
+  history?: History;
   /** offline rendering: load everything up front and skip live niceties */
   offline?: boolean;
   /** only these instruments sound (for stem analysis) */
@@ -85,7 +90,7 @@ export class Engine {
   constructor(o: EngineOptions) {
     this.o = o;
     this.params = { ...o.params };
-    this.composer = new Composer(o.seed);
+    this.composer = new Composer(o.seed, o.history);
     this.transport.PPQ = PPQ;
 
     this.out = new Tone.Gain(o.offline ? OUTPUT : 0).toDestination();
@@ -155,8 +160,8 @@ export class Engine {
     ch.room.gain.rampTo(s.room * (0.55 - sp * 0.4), ramp);
     ch.hall.gain.rampTo(s.hall * (0.06 + sp * sp * 0.75), ramp);
     ch.echo.gain.rampTo(s.echo * Math.max(0, sp - 0.3) * 0.9, ramp);
-    const lofi = this.style === 'lofi';
-    const darkInst = lofi && id !== 'upright' && id !== 'ebass' ? 0.85 : 1;
+    const lofi = this.style === 'lofi' || this.style === 'beats';
+    const darkInst = lofi && id !== 'upright' ? 0.85 : 1;
     ch.filter.frequency.rampTo(Math.min(20000, s.lp * darkInst * (0.8 + this.params.mood * 0.4)), ramp);
   }
 

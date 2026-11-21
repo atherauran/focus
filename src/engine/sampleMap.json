@@ -81,57 +81,23 @@
    "G3": "upright/G3.mp3"
   }
  },
- "ebass": {
-  "main": {
-   "E1": "ebass/E1.mp3",
-   "G1": "ebass/G1.mp3",
-   "A#1": "ebass/As1.mp3",
-   "C#2": "ebass/Cs2.mp3",
-   "E2": "ebass/E2.mp3",
-   "G2": "ebass/G2.mp3",
-   "A#2": "ebass/As2.mp3",
-   "C#3": "ebass/Cs3.mp3",
-   "E3": "ebass/E3.mp3",
-   "G3": "ebass/G3.mp3"
-  }
- },
  "nylon": {
   "main": {
    "E2": "nylon/E2.mp3",
-   "F#2": "nylon/Fs2.mp3",
+   "G2": "nylon/G2.mp3",
    "A2": "nylon/A2.mp3",
-   "B2": "nylon/B2.mp3",
-   "D3": "nylon/D3.mp3",
+   "C3": "nylon/C3.mp3",
    "E3": "nylon/E3.mp3",
-   "F#3": "nylon/Fs3.mp3",
-   "A3": "nylon/A3.mp3",
-   "B3": "nylon/B3.mp3",
+   "G3": "nylon/G3.mp3",
+   "A#3": "nylon/As3.mp3",
    "C#4": "nylon/Cs4.mp3",
    "E4": "nylon/E4.mp3",
-   "F#4": "nylon/Fs4.mp3",
-   "A4": "nylon/A4.mp3",
-   "B4": "nylon/B4.mp3",
+   "G4": "nylon/G4.mp3",
+   "A#4": "nylon/As4.mp3",
    "C#5": "nylon/Cs5.mp3",
    "E5": "nylon/E5.mp3",
-   "A5": "nylon/A5.mp3"
-  }
- },
- "jazzgtr": {
-  "main": {
-   "E2": "jazzgtr/E2.mp3",
-   "A2": "jazzgtr/A2.mp3",
-   "C3": "jazzgtr/C3.mp3",
-   "D#3": "jazzgtr/Ds3.mp3",
-   "F#3": "jazzgtr/Fs3.mp3",
-   "A3": "jazzgtr/A3.mp3",
-   "C4": "jazzgtr/C4.mp3",
-   "D#4": "jazzgtr/Ds4.mp3",
-   "F#4": "jazzgtr/Fs4.mp3",
-   "A4": "jazzgtr/A4.mp3",
-   "C5": "jazzgtr/C5.mp3",
-   "D#5": "jazzgtr/Ds5.mp3",
-   "F#5": "jazzgtr/Fs5.mp3",
-   "A5": "jazzgtr/A5.mp3"
+   "G5": "nylon/G5.mp3",
+   "C6": "nylon/C6.mp3"
   }
  },
  "flute": {
@@ -144,55 +110,176 @@
    "A5": "flute/A5.mp3",
    "C6": "flute/C6.mp3",
    "E6": "flute/E6.mp3",
-   "A6": "flute/A6.mp3"
+   "A6": "flute/A6.mp3",
+   "C7": "flute/C7.mp3"
+  }
+ },
+ "clarinet": {
+  "v0": {
+   "F3": "clarinet/F3_v1.mp3",
+   "A#3": "clarinet/As3_v1.mp3",
+   "D4": "clarinet/D4_v1.mp3",
+   "F4": "clarinet/F4_v1.mp3",
+   "A#4": "clarinet/As4_v1.mp3",
+   "D5": "clarinet/D5_v1.mp3",
+   "F5": "clarinet/F5_v1.mp3",
+   "A#5": "clarinet/As5_v1.mp3",
+   "D6": "clarinet/D6_v1.mp3"
+  },
+  "v1": {
+   "F3": "clarinet/F3_v2.mp3",
+   "A#3": "clarinet/As3_v2.mp3",
+   "D4": "clarinet/D4_v2.mp3",
+   "F4": "clarinet/F4_v2.mp3",
+   "A#4": "clarinet/As4_v2.mp3",
+   "D5": "clarinet/D5_v2.mp3",
+   "F5": "clarinet/F5_v2.mp3",
+   "A#5": "clarinet/As5_v2.mp3",
+   "D6": "clarinet/D6_v2.mp3"
+  }
+ },
+ "strings": {
+  "v0": {
+   "C2": "strings/C2_v1.mp3",
+   "E2": "strings/E2_v1.mp3",
+   "G2": "strings/G2_v1.mp3",
+   "B2": "strings/B2_v1.mp3",
+   "D3": "strings/D3_v1.mp3",
+   "G3": "strings/G3_v1.mp3",
+   "B3": "strings/B3_v1.mp3",
+   "D4": "strings/D4_v1.mp3",
+   "F#4": "strings/Fs4_v1.mp3",
+   "A4": "strings/A4_v1.mp3",
+   "C5": "strings/C5_v1.mp3",
+   "E5": "strings/E5_v1.mp3",
+   "G5": "strings/G5_v1.mp3",
+   "B5": "strings/B5_v1.mp3",
+   "D6": "strings/D6_v1.mp3"
+  },
+  "v1": {
+   "C2": "strings/C2_v2.mp3",
+   "E2": "strings/E2_v2.mp3",
+   "G2": "strings/G2_v2.mp3",
+   "B2": "strings/B2_v2.mp3",
+   "D3": "strings/D3_v2.mp3",
+   "G3": "strings/G3_v2.mp3",
+   "B3": "strings/B3_v2.mp3",
+   "D4": "strings/D4_v2.mp3",
+   "F#4": "strings/Fs4_v2.mp3",
+   "A4": "strings/A4_v2.mp3",
+   "C5": "strings/C5_v2.mp3",
+   "E5": "strings/E5_v2.mp3",
+   "G5": "strings/G5_v2.mp3",
+   "B5": "strings/B5_v2.mp3",
+   "D6": "strings/D6_v2.mp3"
+  }
+ },
+ "felt": {
+  "v0": {
+   "A1": "felt/A1_v1.mp3",
+   "C#2": "felt/Cs2_v1.mp3",
+   "F2": "felt/F2_v1.mp3",
+   "A2": "felt/A2_v1.mp3",
+   "C#3": "felt/Cs3_v1.mp3",
+   "F3": "felt/F3_v1.mp3",
+   "A3": "felt/A3_v1.mp3",
+   "C#4": "felt/Cs4_v1.mp3",
+   "F4": "felt/F4_v1.mp3",
+   "A4": "felt/A4_v1.mp3",
+   "C#5": "felt/Cs5_v1.mp3",
+   "F5": "felt/F5_v1.mp3",
+   "A5": "felt/A5_v1.mp3",
+   "C#6": "felt/Cs6_v1.mp3",
+   "F6": "felt/F6_v1.mp3",
+   "A6": "felt/A6_v1.mp3"
+  },
+  "v1": {
+   "A1": "felt/A1_v2.mp3",
+   "C#2": "felt/Cs2_v2.mp3",
+   "F2": "felt/F2_v2.mp3",
+   "A2": "felt/A2_v2.mp3",
+   "C#3": "felt/Cs3_v2.mp3",
+   "F3": "felt/F3_v2.mp3",
+   "A3": "felt/A3_v2.mp3",
+   "C#4": "felt/Cs4_v2.mp3",
+   "F4": "felt/F4_v2.mp3",
+   "A4": "felt/A4_v2.mp3",
+   "C#5": "felt/Cs5_v2.mp3",
+   "F5": "felt/F5_v2.mp3",
+   "A5": "felt/A5_v2.mp3",
+   "C#6": "felt/Cs6_v2.mp3",
+   "F6": "felt/F6_v2.mp3",
+   "A6": "felt/A6_v2.mp3"
+  }
+ },
+ "marimba": {
+  "v0": {
+   "F2": "marimba/F2_vsoft.mp3",
+   "C3": "marimba/C3_vsoft.mp3",
+   "G3": "marimba/G3_vsoft.mp3",
+   "B3": "marimba/B3_vsoft.mp3",
+   "F4": "marimba/F4_vsoft.mp3",
+   "C5": "marimba/C5_vsoft.mp3",
+   "G5": "marimba/G5_vsoft.mp3",
+   "B5": "marimba/B5_vsoft.mp3"
+  },
+  "v1": {
+   "F2": "marimba/F2_vmed.mp3",
+   "C3": "marimba/C3_vmed.mp3",
+   "G3": "marimba/G3_vmed.mp3",
+   "B3": "marimba/B3_vmed.mp3",
+   "F4": "marimba/F4_vmed.mp3",
+   "C5": "marimba/C5_vmed.mp3",
+   "G5": "marimba/G5_vmed.mp3",
+   "B5": "marimba/B5_vmed.mp3"
   }
  },
  "vibes": {
   "v0": {
-   "F2": "vibes/F2_v1.mp3",
-   "A2": "vibes/A2_v1.mp3",
-   "C3": "vibes/C3_v1.mp3",
-   "E3": "vibes/E3_v1.mp3",
-   "G3": "vibes/G3_v1.mp3",
-   "B3": "vibes/B3_v1.mp3",
-   "D4": "vibes/D4_v1.mp3",
-   "F4": "vibes/F4_v1.mp3",
-   "A4": "vibes/A4_v1.mp3",
-   "C5": "vibes/C5_v1.mp3",
-   "E5": "vibes/E5_v1.mp3"
+   "F3": "vibes/F3_v1.mp3",
+   "A3": "vibes/A3_v1.mp3",
+   "C4": "vibes/C4_v1.mp3",
+   "E4": "vibes/E4_v1.mp3",
+   "G4": "vibes/G4_v1.mp3",
+   "B4": "vibes/B4_v1.mp3",
+   "D5": "vibes/D5_v1.mp3",
+   "F5": "vibes/F5_v1.mp3",
+   "A5": "vibes/A5_v1.mp3",
+   "C6": "vibes/C6_v1.mp3",
+   "E6": "vibes/E6_v1.mp3"
   },
   "v1": {
-   "F2": "vibes/F2_v2.mp3",
-   "A2": "vibes/A2_v2.mp3",
-   "C3": "vibes/C3_v2.mp3",
-   "E3": "vibes/E3_v2.mp3",
-   "G3": "vibes/G3_v2.mp3",
-   "B3": "vibes/B3_v2.mp3",
-   "D4": "vibes/D4_v2.mp3",
-   "F4": "vibes/F4_v2.mp3",
-   "A4": "vibes/A4_v2.mp3",
-   "C5": "vibes/C5_v2.mp3",
-   "E5": "vibes/E5_v2.mp3"
+   "F3": "vibes/F3_v2.mp3",
+   "A3": "vibes/A3_v2.mp3",
+   "C4": "vibes/C4_v2.mp3",
+   "E4": "vibes/E4_v2.mp3",
+   "G4": "vibes/G4_v2.mp3",
+   "B4": "vibes/B4_v2.mp3",
+   "D5": "vibes/D5_v2.mp3",
+   "F5": "vibes/F5_v2.mp3",
+   "A5": "vibes/A5_v2.mp3",
+   "C6": "vibes/C6_v2.mp3",
+   "E6": "vibes/E6_v2.mp3"
   }
  },
  "bowedvibes": {
   "main": {
-   "A2": "bowedvibes/A2.mp3",
-   "E3": "bowedvibes/E3.mp3",
-   "G3": "bowedvibes/G3.mp3",
-   "D4": "bowedvibes/D4.mp3",
-   "A4": "bowedvibes/A4.mp3",
-   "E5": "bowedvibes/E5.mp3"
+   "A3": "bowedvibes/A3.mp3",
+   "E4": "bowedvibes/E4.mp3",
+   "G4": "bowedvibes/G4.mp3",
+   "D5": "bowedvibes/D5.mp3",
+   "A5": "bowedvibes/A5.mp3",
+   "E6": "bowedvibes/E6.mp3"
   }
  },
  "glock": {
   "main": {
-   "G4": "glock/G4.mp3",
-   "C5": "glock/C5.mp3",
    "G5": "glock/G5.mp3",
    "C6": "glock/C6.mp3",
    "G6": "glock/G6.mp3",
-   "C7": "glock/C7.mp3"
+   "C7": "glock/C7.mp3",
+   "G7": "glock/G7.mp3",
+   "C8": "glock/C8.mp3"
   }
  },
  "harp": {

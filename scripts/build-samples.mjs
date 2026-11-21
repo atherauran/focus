@@ -9,10 +9,14 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cache = join(root, '.sample-cache');
 const out = join(root, 'public', 'samples');
 
-const NB = 'https://nbrosowsky.github.io/tonejs-instruments/samples/';
 const RH = 'https://danigb.github.io/samples/jlearman/rhodes-mki/jRhodes3d-st/';
 const DB = 'https://danigb.github.io/samples/dsmolken/double-bass/pizz/';
 const VCSL = 'https://smpldsnds.github.io/sgossner-vcsl/';
+const VSCO = 'https://raw.githubusercontent.com/sgossner/VSCO-2-CE/master/';
+const vsco = (path) => VSCO + path.split('/').map(encodeURIComponent).join('/');
+// FreePats Spanish classical guitar ships as a .7z; it is unpacked into the cache first.
+const GUITAR_7Z = 'https://freepats.zenvoid.org/Guitar/SpanishClassicalGuitar/SpanishClassicalGuitar-SFZ+FLAC-20190618.7z';
+const GUITAR_DIR = join(cache, '_src', 'SpanishClassicalGuitar-SFZ+FLAC-20190618', 'samples');
 
 // VCSL files live in nested folders; resolve by basename from the index.
 let vcslIndex;
@@ -27,6 +31,10 @@ async function vcsl(name) {
 }
 
 const sharp = (n) => n.replace('s', '#');
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const midiToName = (m) => NAMES[m % 12] + (Math.floor(m / 12) - 1);
+// VSCO 2 and most VCSL sets name notes an octave low (middle C = C3): file name for a sounding note.
+const low = (n) => midiToName(noteToMidi(n) - 12);
 
 // key: note name (pitched) or hit name (drums). layers: optional velocity layers.
 const instruments = [
@@ -52,37 +60,61 @@ const instruments = [
       .map(([k, f]) => ({ key: k, url: `${DB}pizz_${f}.ogg` })),
   },
   {
-    id: 'ebass', maxDur: 4, fade: 1, channels: 1,
-    notes: ['E1', 'G1', 'As1', 'Cs2', 'E2', 'G2', 'As2', 'Cs3', 'E3', 'G3'].map((n) => ({ key: sharp(n), url: NB + 'bass-electric/' + n + '.mp3' })),
+    // FreePats Spanish classical guitar (local, from the unpacked archive).
+    id: 'nylon', maxDur: 4.5, fade: 1.2, channels: 2,
+    notes: ['E2', 'G2', 'A2', 'C3', 'E3', 'G3', 'A#3', 'C#4', 'E4', 'G4', 'A#4', 'C#5', 'E5', 'G5', 'C6']
+      .map((n) => ({ key: n, file: join(GUITAR_DIR, n + '.flac') })),
   },
   {
-    id: 'nylon', maxDur: 4, fade: 1, channels: 2,
-    notes: ['E2', 'Fs2', 'A2', 'B2', 'D3', 'E3', 'Fs3', 'A3', 'B3', 'Cs4', 'E4', 'Fs4', 'A4', 'B4', 'Cs5', 'E5', 'A5']
-      .map((n) => ({ key: sharp(n), url: NB + 'guitar-nylon/' + n + '.mp3' })),
+    id: 'flute', maxDur: 6, fade: 1.2, channels: 1,
+    notes: ['C4', 'E4', 'A4', 'C5', 'E5', 'A5', 'C6', 'E6', 'A6', 'C7']
+      .map((n) => ({ key: n, url: vsco(`Woodwinds/Flute/susvib/LDFlute_susvib_${low(n)}_v1_1.wav`) })),
   },
   {
-    id: 'jazzgtr', maxDur: 4.2, fade: 1, channels: 2,
-    notes: ['E2', 'A2', 'C3', 'Ds3', 'Fs3', 'A3', 'C4', 'Ds4', 'Fs4', 'A4', 'C5', 'Ds5', 'Fs5', 'A5']
-      .map((n) => ({ key: sharp(n), url: NB + 'guitar-electric/' + n + '.mp3' })),
+    id: 'clarinet', maxDur: 6, fade: 1.2, channels: 1,
+    layers: [1, 2],
+    notes: ['F3', 'A#3', 'D4', 'F4', 'A#4', 'D5', 'F5', 'A#5', 'D6'],
+    url: (n, layer) => vsco(`Woodwinds/Clarinet/susLong/DCClar_susLong_${low(n)}_v${layer}_rr1_sum.wav`),
   },
   {
-    id: 'flute', maxDur: 6, fade: 1.2, channels: 2,
-    notes: ['C4', 'E4', 'A4', 'C5', 'E5', 'A5', 'C6', 'E6', 'A6'].map((n) => ({ key: n, url: NB + 'flute/' + n + '.mp3' })),
+    // A string section patch: celli low, violas in the middle, violins on top.
+    id: 'strings', maxDur: 8, fade: 2, channels: 2,
+    layers: [1, 2],
+    notes: ['C2', 'E2', 'G2', 'B2', 'D3', 'G3', 'B3', 'D4', 'F#4', 'A4', 'C5', 'E5', 'G5', 'B5', 'D6'],
+    url: (n, layer) => {
+      const m = noteToMidi(n);
+      if (m < 50) return vsco(`Strings/Cello Section/susvib/susvib_${low(n)}_v${layer === 1 ? 1 : 3}_1.wav`);
+      if (m < 62) return vsco(`Strings/Viola Section/susvib/ViolaEns_susvib_${low(n)}_v${layer}_1.wav`);
+      return vsco(`Strings/Violin Section/susVib/VlnEns_susVib_${low(n)}_v${layer}.wav`);
+    },
+  },
+  {
+    // VCSL Yamaha upright, played softly and darkened in the mix: a felt-piano colour.
+    id: 'felt', maxDur: 8, fade: 2.5, channels: 2,
+    layers: [1, 2],
+    notes: ['A1', 'C#2', 'F2', 'A2', 'C#3', 'F3', 'A3', 'C#4', 'F4', 'A4', 'C#5', 'F5', 'A5', 'C#6', 'F6', 'A6'],
+    url: (n, layer) => vcsl(`Player_vl${layer}_rr1_${low(n)}`),
+  },
+  {
+    id: 'marimba', maxDur: 3, fade: 1, channels: 2,
+    layers: ['soft', 'med'],
+    notes: ['F2', 'C3', 'G3', 'B3', 'F4', 'C5', 'G5', 'B5'],
+    url: (n, layer) => vcsl(`Marimba_hit_Outrigger_${low(n)}_${layer}_01`),
   },
   {
     id: 'vibes', maxDur: 7, fade: 2, channels: 2,
     layers: [1, 2],
-    notes: ['F2', 'A2', 'C3', 'E3', 'G3', 'B3', 'D4', 'F4', 'A4', 'C5', 'E5'],
-    url: (n, layer) => vcsl(`Vibes_soft_${n}_v${layer}_rr1_Main`).catch(() => vcsl(`Vibes_soft_${n}_v${layer}_rr2_Main`)),
+    notes: ['F3', 'A3', 'C4', 'E4', 'G4', 'B4', 'D5', 'F5', 'A5', 'C6', 'E6'],
+    url: (n, layer) => vcsl(`Vibes_soft_${low(n)}_v${layer}_rr1_Main`).catch(() => vcsl(`Vibes_soft_${low(n)}_v${layer}_rr2_Main`)),
   },
   {
     id: 'bowedvibes', maxDur: 9, fade: 2.5, channels: 2,
-    notes: ['A2', 'E3', 'G3', 'D4', 'A4', 'E5'],
-    url: (n) => vcsl(`Vibes_bowed_${n}_rr1_Main`),
+    notes: ['A3', 'E4', 'G4', 'D5', 'A5', 'E6'],
+    url: (n) => vcsl(`Vibes_bowed_${low(n)}_rr1_Main`),
   },
   {
     id: 'glock', maxDur: 5, fade: 1.5, channels: 2,
-    notes: [['G4', 'glock_soft_G4_01'], ['C5', 'glock_soft_C5_02'], ['G5', 'glock_soft_G5_01'], ['C6', 'glock_soft_C6_01'], ['G6', 'glock_soft_G6_01'], ['C7', 'glock_soft_C7_03']]
+    notes: [['G5', 'glock_soft_G4_01'], ['C6', 'glock_soft_C5_02'], ['G6', 'glock_soft_G5_01'], ['C7', 'glock_soft_C6_01'], ['G7', 'glock_soft_G6_01'], ['C8', 'glock_soft_C7_03']]
       .map(([k, f]) => ({ key: k, url: () => vcsl(f) })),
   },
   {
@@ -134,7 +166,15 @@ function convert(src, dst, { maxDur, fade, channels, gain }) {
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', src, '-af', filters, '-ac', String(channels), '-ar', '44100', '-c:a', 'libmp3lame', '-q:a', '4', dst]);
 }
 
+function unpackGuitar() {
+  if (existsSync(GUITAR_DIR)) return;
+  const archive = join(cache, '_src', 'guitar.7z');
+  execFileSync('curl', ['-sL', '-o', archive, '--create-dirs', GUITAR_7Z]);
+  execFileSync('tar', ['-xf', archive, '-C', join(cache, '_src')]); // bsdtar reads 7z
+}
+
 const PEAK_TARGET = -3;
+unpackGuitar();
 const map = {};
 for (const inst of instruments) {
   const entries = {};
@@ -144,12 +184,15 @@ for (const inst of instruments) {
     // Layers of one note share a gain so their relative loudness survives normalization.
     const files = [];
     for (const layer of layers) {
-      let url = note.url ?? inst.url(note.key, layer);
-      if (typeof url === 'function') url = url();
-      url = await url;
       const safe = (layer == null ? note.key : `${note.key}_v${layer}`).replace('#', 's');
-      const cached = join(cache, inst.id, `${safe}.${url.split('.').pop()}`);
-      await download(url, cached);
+      let cached = note.file;
+      if (!cached) {
+        let url = note.url ?? inst.url(note.key, layer);
+        if (typeof url === 'function') url = url();
+        url = await url;
+        cached = join(cache, inst.id, `${safe}.${url.split('.').pop()}`);
+        await download(url, cached);
+      }
       files.push({ layer, safe, cached });
     }
     const gain = PEAK_TARGET - Math.max(...files.map((f) => measurePeak(f.cached)));

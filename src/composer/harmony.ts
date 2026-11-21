@@ -172,7 +172,76 @@ const BOSSA: Bank = {
   },
 };
 
-const BANKS: Record<Language, Bank> = { jazz: JAZZ, lofi: LOFI, ambient: AMBIENT, folk: FOLK, bossa: BOSSA };
+/* Film and neo-classical: triads, add9s and slash chords, one chord per bar, pop and modal motion. */
+const CINEMATIC: Bank = {
+  major: {
+    A: [
+      'Iadd9 | V/VII | vi | IVadd9 | Iadd9 | V/VII | IVadd9 | V7sus',
+      'vi | IV | I | V | vi | IV | I | V7sus',
+      'IVadd9 | - | I/III | - | vi7 | - | V7sus | V',
+      'I | iii | vi | IV | I | iii | IVadd9 | V7sus',
+      'Iadd9 | IVadd9/I | Iadd9 | IVadd9/I | vi7 | IVM7 | ii7 | V7sus',
+      'I | V/VII | vi | iii/V | IV | I/III | ii7 | V7sus',
+    ],
+    B: [
+      'IV | V | iii | vi | IV | V | IVadd9 | V7sus',
+      'IVM7 | - | V | - | vi7 | - | V7sus | -',
+      'bVIadd9 | bVII | I | - | bVIadd9 | bVII | IVadd9 | V7sus',
+      'vi | iii | IV | I | ii7 | IV | V7sus | V',
+    ],
+  },
+  minor: {
+    A: [
+      'i | bVI | bIII | bVII | i | bVI | iv | V7sus',
+      'iadd9 | - | bVIM7 | - | iv7 | - | bVII | V7sus',
+      'i | iv | bVI | V | i | iv | bVI | V',
+      'bVI | bVII | i | - | bVI | bVII | V7sus | V',
+      'i | v | bVI | bIII | iv | i | iv | V7sus',
+    ],
+    B: [
+      'bIII | bVII | iv | i | bVI | bIII | iv | V7sus',
+      'bVIM7 | - | bIIIadd9 | - | bVII | - | V7sus | V',
+      'iv | bVI | bIII | bVII | iv | bVI | V7sus | V',
+    ],
+  },
+};
+
+/* Beat-tape loops: four bars that repeat for the whole piece (A is the main loop, B the switch). */
+const BEATS: Bank = {
+  major: {
+    A: [
+      'IVM7 | III7 | vi7 | v7 I7',
+      'ii9 | V13 | IM9 | vi9',
+      'IM9 | iv6 | iii7 | VI7',
+      'IVM9 | V7sus | iii7 | vi9',
+      'IVM7 | iii7 | ii7 | IM7',
+      'vi9 | ii9 | V7sus | IM9',
+    ],
+    B: [
+      'IM9 | - | IVM9 | -',
+      'ii9 | - | IM9 | -',
+      'IVM7 | iv6 | iii7 | VI7',
+      'vi9 | IVM7 | ii9 | V7sus',
+    ],
+  },
+  minor: {
+    A: [
+      'i9 | iv9 | bVII9 | bIIIM7',
+      'i9 | bVIM7 | iv9 | V7alt',
+      'iv9 | v7 | bVIM7 | bVII6',
+      'i9 | bIIIM7 | iv9 | bVIM7',
+      'bVIM7 | bVII6 | i9 | -',
+    ],
+    B: [
+      'iv9 | - | i9 | -',
+      'i9 | IV9 | i9 | IV9',
+      'bVIM7 | - | bVII6 | -',
+      'iv9 | bVII9 | bIIIM7 | bVIM7',
+    ],
+  },
+};
+
+const BANKS: Record<Language, Bank> = { jazz: JAZZ, lofi: LOFI, ambient: AMBIENT, folk: FOLK, bossa: BOSSA, cinematic: CINEMATIC, beats: BEATS };
 
 const CLOSE: Record<Language, Record<'major' | 'minor', string[]>> = {
   jazz: { major: ['ii7 V7 | IM7', 'ii7 V7 | I6'], minor: ['ii7b5 V7 | i7', 'ii7b5 V7 | i6'] },
@@ -180,9 +249,14 @@ const CLOSE: Record<Language, Record<'major' | 'minor', string[]>> = {
   lofi: { major: ['ii7 V7sus | IM7', 'IVM7 iv6 | IM7'], minor: ['iv7 V7 | i7', 'bVIM7 V7 | i7'] },
   ambient: { major: ['IVM7 | Iadd9', 'V7sus | IM7'], minor: ['bVIM7 | i9', 'iv9 | i9'] },
   folk: { major: ['IV V | I', 'IVadd9 V7sus | I'], minor: ['iv V | i', 'bVI V | i'] },
+  cinematic: { major: ['IVadd9 V7sus | Iadd9', 'IV V | I', 'ii7 V7sus | Iadd9'], minor: ['bVI V | i', 'iv V7sus | iadd9', 'bVI bVII | i'] },
+  beats: { major: ['IVM7 V7sus | IM9', 'ii9 V13 | IM9'], minor: ['iv9 V7alt | i9', 'bVIM7 bVII6 | i9'] },
 };
 
-/** Parse an 8-bar template into per-bar harmony (equal split inside a bar, "-" ties). */
+/** Languages built from plain triads and add9s rather than jazz sevenths. */
+const triadic = (lang: Language) => lang === 'folk' || lang === 'ambient' || lang === 'cinematic';
+
+/** Parse a template into per-bar harmony (equal split inside a bar, "-" ties). */
 export function parseProgression(src: string, key: Key, beats: number): BarHarmony[] {
   const bars = src.split('|').map((b) => b.trim().split(/\s+/));
   const out: BarHarmony[] = [];
@@ -220,7 +294,7 @@ export function finalChord(rng: Rng, key: Key, lang: Language): Chord {
   const minor = isMinorMode(key.mode);
   const q: Quality = minor
     ? rng.pick(lang === 'folk' ? ['madd9', 'min'] : ['m9', 'm6', 'madd9'] as Quality[])
-    : rng.pick(lang === 'folk' ? ['add9', 'maj'] : lang === 'ambient' ? ['add9', 'maj9', 'maj7#11'] : ['maj9', '69', 'maj7'] as Quality[]);
+    : rng.pick(lang === 'folk' ? ['add9', 'maj'] : lang === 'ambient' || lang === 'cinematic' ? ['add9', 'maj9', 'maj7#11'] : ['maj9', '69', 'maj7'] as Quality[]);
   return { root: key.tonic, q };
 }
 
@@ -233,15 +307,14 @@ function enrich(c: Chord, rng: Rng, lang: Language, key: Key): Chord {
     case 'maj7': return { ...c, q: r < 0.45 ? 'maj9' : isTonic && r < 0.7 ? '69' : !isTonic && c.root === mod12(key.tonic + 5) && r < 0.85 ? 'maj7#11' : 'maj7' };
     case 'm7': return { ...c, q: r < 0.5 ? 'm9' : r < 0.7 && lang !== 'jazz' ? 'm11' : 'm7' };
     case '7': return { ...c, q: r < 0.4 ? '9' : r < 0.7 ? '13' : '7' };
-    case 'maj': return { ...c, q: lang === 'folk' || lang === 'ambient' ? (r < 0.5 ? 'add9' : 'maj7') : 'maj9' };
-    case 'min': return { ...c, q: lang === 'folk' || lang === 'ambient' ? (r < 0.5 ? 'madd9' : 'm7') : 'm9' };
+    case 'maj': return { ...c, q: triadic(lang) ? (r < 0.5 ? 'add9' : 'maj7') : 'maj9' };
+    case 'min': return { ...c, q: triadic(lang) ? (r < 0.5 ? 'madd9' : 'm7') : 'm9' };
     default: return c;
   }
 }
 
 function simplify(c: Chord, lang: Language): Chord {
-  const triadic = lang === 'folk' || lang === 'ambient';
-  const map: Partial<Record<Quality, Quality>> = triadic
+  const map: Partial<Record<Quality, Quality>> = triadic(lang)
     ? { maj7: 'maj', maj9: 'add9', 'maj7#11': 'maj', '69': 'maj', '6': 'maj', m7: 'min', m9: 'min', m11: 'min', '9': '7', '13': '7', '7b9': '7', '7alt': '7' }
     : { maj9: 'maj7', 'maj7#11': 'maj7', '69': '6', m9: 'm7', m11: 'm7', '9': '7', '13': '7', '7b9': '7', '7alt': '7', add9: 'maj', madd9: 'min' };
   return { ...c, q: map[c.q] ?? c.q };
@@ -253,7 +326,7 @@ function simplify(c: Chord, lang: Language): Chord {
  */
 export function variants(base: BarHarmony[], rng: Rng, lang: Language, key: Key, beats: number) {
   const simple = base.map((bar) => bar.map((s) => ({ ...s, chord: simplify(s.chord, lang) })));
-  const functional = lang === 'jazz' || lang === 'bossa' || lang === 'lofi';
+  const functional = lang === 'jazz' || lang === 'bossa' || lang === 'lofi' || lang === 'beats';
   const rich: BarHarmony[] = base.map((bar, i) => {
     const next = base[i + 1]?.[0]?.chord ?? base[0][0].chord;
     const spans = bar.map((s) => ({ ...s, chord: enrich(s.chord, rng, lang, key) }));
@@ -262,7 +335,7 @@ export function variants(base: BarHarmony[], rng: Rng, lang: Language, key: Key,
     const lastFam = chordFamily(last.chord);
     const resolvesDown5 = mod12(last.chord.root - next.root) === 7;
     // Tritone substitution of a resolving dominant.
-    if (lastFam === 'dom' && resolvesDown5 && rng.chance(lang === 'lofi' ? 0.2 : 0.4)) {
+    if (lastFam === 'dom' && resolvesDown5 && rng.chance(lang === 'lofi' || lang === 'beats' ? 0.2 : 0.4)) {
       last.chord = { root: mod12(last.chord.root + 6), q: rng.chance(0.5) ? '9' : '7' };
       return spans;
     }
@@ -277,7 +350,7 @@ export function variants(base: BarHarmony[], rng: Rng, lang: Language, key: Key,
       if (lastFam === 'dom' && resolvesDown5 && rng.chance(0.35)) {
         return [{ start: 0, dur: 2, chord: { root: mod12(c.root + 7), q: 'm7' } }, { start: 2, dur: 2, chord: c }];
       }
-      if (lastFam !== 'dom' && next.root !== c.root && lang !== 'lofi' && rng.chance(0.3)) {
+      if (lastFam !== 'dom' && next.root !== c.root && lang !== 'lofi' && lang !== 'beats' && rng.chance(0.3)) {
         return half({ root: mod12(next.root + 7), q: nextMinor ? '7b9' : '7' });
       }
     }

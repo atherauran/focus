@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "samples": "node scripts/build-samples.mjs"
+    "samples": "node scripts/build-samples.mjs",
+    "grooves": "node scripts/build-grooves.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

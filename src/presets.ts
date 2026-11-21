@@ -1,3 +1,4 @@
+import type { History } from './composer/piece';
 import type { Params } from './composer/types';
 
 export type PresetId = 'study' | 'reading' | 'coding' | 'sleep' | 'custom';
@@ -37,5 +38,25 @@ export function save(s: Saved) {
     localStorage.setItem(KEY, JSON.stringify(s));
   } catch {
     /* storage unavailable: settings just won't persist */
+  }
+}
+
+const HISTORY_KEY = 'focus.history';
+
+/** Recently played arrangements and keys, so a new session doesn't open like the last one. */
+export function loadHistory(): History | undefined {
+  try {
+    const h = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? 'null') as History | null;
+    return h && Array.isArray(h.arrangements) && Array.isArray(h.tonics) ? h : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveHistory(h: History) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+  } catch {
+    /* storage unavailable */
   }
 }

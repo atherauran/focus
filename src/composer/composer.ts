@@ -4,6 +4,7 @@ import { BarCtx, PieceState, bass, comp, counter, drums, pad, texture } from './
 import { History, Piece, planPiece } from './piece';
 import { Rng, rngFor } from './rng';
 import { Chord } from './theory';
+import { voice } from './voicing';
 import type { Bar, BarHarmony, NoteEvent, Params, Role } from './types';
 
 type Variant = 'base' | 'rich' | 'simple';
@@ -22,12 +23,14 @@ export class Composer {
   private bar = 0;
   private state!: PieceState;
   private lastChord: Chord | null = null;
-  private history: History = { arrangements: [], tonics: [] };
-  private gapPending = false;
-  private lastTempo = 72;
+  readonly history: History;
+  /** Slow wander of the planning settings from piece to piece, so hours don't sit in one corner. */
+  private drift = { energy: 0, mood: 0, complexity: 0 };
 
-  constructor(seed: number) {
+  /** `history` (what played recently, e.g. in an earlier session) steers the first pieces elsewhere. */
+  constructor(seed: number, history?: History) {
     this.seed = seed >>> 0;
+    this.history = { arrangements: [...(history?.arrangements ?? [])], tonics: [...(history?.tonics ?? [])] };
   }
 
   get current(): Piece | null {
@@ -37,46 +40,64 @@ export class Composer {
   /** Abandon the current piece; the next bar starts a new one. */
   skip() {
     this.piece = null;
-    this.gapPending = false;
   }
 
   next(params: Params): Bar {
     if (this.piece && this.bar >= this.piece.totalBars) {
-      if (this.gapPending) {
-        this.gapPending = false;
-        return this.gapBar();
-      }
-      this.piece = null;
+      // Plan the next piece now, so the bar between the two can lead into it.
+      const prev = this.piece;
+      this.startPiece(params);
+      return this.segueBar(prev, params);
     }
     if (!this.piece) this.startPiece(params);
     const out = this.render(params);
     this.bar++;
-    if (this.bar >= this.piece!.totalBars) this.gapPending = true;
     return out;
   }
 
   private startPiece(params: Params) {
-    const p = planPiece(this.seed, this.pieceCount++, params, this.history);
+    const d = this.drift;
+    const dr = rngFor(this.seed, 'drift', this.pieceCount);
+    d.energy = d.energy * 0.5 + dr.range(-0.12, 0.12);
+    d.mood = d.mood * 0.5 + dr.range(-0.16, 0.16);
+    d.complexity = d.complexity * 0.5 + dr.range(-0.12, 0.12);
+    const planned = { ...params, energy: clamp01(params.energy + d.energy), mood: clamp01(params.mood + d.mood), complexity: clamp01(params.complexity + d.complexity) };
+    const p = planPiece(this.seed, this.pieceCount++, planned, this.history);
+    p.energyAtPlan = params.energy;
     this.piece = p;
     this.bar = 0;
     this.lastChord = null;
-    this.history.arrangements.push(p.arr.id);
-    this.history.tonics.push(p.key.tonic);
+    const h = this.history;
+    h.arrangements.push(p.arr.id);
+    h.tonics.push(p.key.tonic);
+    h.arrangements.splice(0, h.arrangements.length - 8);
+    h.tonics.splice(0, h.tonics.length - 8);
     const r = rngFor(this.seed, 'habits', p.index);
     this.state = {
       voicing: {},
       bassLast: null,
       pushed: {},
       levels: {},
-      habits: { comp: [r.int(0, 6), r.int(0, 6), r.int(0, 6)], bass: [r.int(0, 2), r.int(0, 4)], kick: [r.int(0, 4), r.int(0, 4)] },
+      habits: { comp: [r.int(0, 6), r.int(0, 6), r.int(0, 6)], bass: [r.int(0, 2), r.int(0, 4)] },
+      groove: p.groove,
+      grooveBar: 0,
     };
   }
 
-  private gapBar(): Bar {
+  /**
+   * The bar between pieces: while the last chord rings out, a soft chord in the new key swells in
+   * on the new piece's pad (or a synth pad) and hands over to its intro. The transport moves to
+   * the new tempo here, under sustained sound rather than on the first beat.
+   */
+  private segueBar(prev: Piece, params: Params): Bar {
     const p = this.piece!;
+    const chord = this.harmonyAt(0, 'base', params.mood)[0].chord;
+    const inst = p.arr.pad ?? 'pad';
+    const notes = voice(chord, p.key, null, { lo: 52, hi: 74, size: 3, rootless: false, color: 0.3, spread: true, center: 62 });
+    const events: NoteEvent[] = notes.map((midi) => ({ inst, role: 'pad', time: 1, dur: 3.5, midi, vel: p.arr.pad ? 0.26 : 0.18 }));
     return {
-      piece: p.index, bar: p.totalBars, beats: 4, tempo: this.lastTempo, baseTempo: this.lastTempo, events: [],
-      style: p.arr.style, arrangement: p.arr.id, section: 'gap', chords: [], key: p.key, gap: true,
+      piece: prev.index, bar: prev.totalBars, beats: 4, tempo: p.tempo, baseTempo: p.tempo, events,
+      style: prev.arr.style, arrangement: prev.arr.id, section: 'gap', chords: [], key: p.key, gap: true,
     };
   }
 
@@ -127,10 +148,16 @@ export class Composer {
     targets.melody = sec.melody === 'none' ? 0 : 1;
     const lv = this.state.levels;
     for (const role of Object.keys(targets) as Role[]) {
-      const cur = lv[role] ?? (bi === 0 ? targets[role]! : 0);
       const tgt = targets[role]!;
+      // A piece fades in: its first bar starts below the section's levels and grows from there.
+      if (bi === 0) {
+        lv[role] = role === 'melody' ? tgt : tgt * 0.6;
+        continue;
+      }
+      const cur = lv[role] ?? 0;
       // Changes driven by the sliders wait for a phrase boundary; section changes don't.
-      const step = role === 'melody' ? 1 : sb === 0 || phrasePos === 0 ? 0.34 : 0.12;
+      // A section that drops the drums cuts them at once (a break, a drop).
+      const step = role === 'melody' || (role === 'drums' && sb === 0 && tgt === 0) ? 1 : sb === 0 || phrasePos === 0 ? 0.34 : 0.12;
       lv[role] = cur + Math.max(-step, Math.min(step, tgt - cur));
     }
 
@@ -174,10 +201,10 @@ export class Composer {
 
     // Tempo: the piece's tempo, nudged by energy, breathing at phrase ends, slowing to the end.
     let tempo = p.tempo * (1 + (energy - p.energyAtPlan) * 0.08);
-    const rubato = arr.style === 'ballad' || arr.style === 'ambient';
+    const rubato = arr.style === 'ballad' || arr.style === 'ambient' || arr.style === 'cinematic';
     if (rubato) tempo *= phrasePos === 3 ? 0.965 : 1 + rng.range(-0.008, 0.012);
-    if (sec.final) tempo *= sb === sec.bars - 1 ? 0.8 : 0.92;
-    this.lastTempo = tempo;
+    // Beat tapes keep time to the end; everything else slows into the final chord.
+    if (sec.final && p.form !== 'loop') tempo *= sb === sec.bars - 1 ? 0.8 : 0.92;
 
     this.humanize(events, rng, params, sec.intensity, phrasePos, tempo, lv, rubato);
 
@@ -188,17 +215,17 @@ export class Composer {
   }
 
   private humanize(events: NoteEvent[], rng: Rng, params: Params, intensity: number, phrasePos: number, tempo: number, lv: Partial<Record<Role, number>>, rubato: boolean) {
-    const arr = this.piece!.arr;
+    const p = this.piece!;
     const msToBeats = (ms: number) => (ms / 1000) * (tempo / 60);
-    const swing = 0.5 + (arr.swing - 0.5) * Math.max(0.4, Math.min(1, (150 - tempo) / 70));
-    const unit = arr.swingUnit;
+    const swing = 0.5 + (p.swing - 0.5) * Math.max(0.4, Math.min(1, (150 - tempo) / 70));
+    const unit = p.swingUnit;
     const arc = [0.95, 1, 1.05, 0.97][phrasePos];
     const dyn = (0.8 + params.energy * 0.28) * (0.86 + intensity * 0.28);
     for (const e of events) {
-      // Swing the off-beat subdivisions.
+      // Swing the off-beat subdivisions; recorded parts already have their own feel.
       // (Tolerance covers the small offsets of rolled chords.)
       const k = Math.round(e.time / unit);
-      if (Math.abs(e.time - k * unit) < 0.06 && k % 2 === 1) e.time += unit * (2 * swing - 1);
+      if (!e.fixed && Math.abs(e.time - k * unit) < 0.06 && k % 2 === 1) e.time += unit * (2 * swing - 1);
       let ms = 0;
       switch (e.role) {
         case 'melody': ms = rng.gauss() * (rubato ? 16 : 9) + 6; break;
@@ -206,7 +233,7 @@ export class Composer {
         case 'comp': ms = rng.gauss() * 7; break;
         case 'bass': ms = rng.gauss() * 5 + 7; break;
         case 'texture': ms = rng.gauss() * 12; break;
-        case 'drums': ms = rng.gauss() * (e.hit === 'swish' ? 10 : 3.5); break;
+        case 'drums': ms = e.fixed ? 0 : rng.gauss() * (e.hit === 'swish' ? 10 : 3.5); break;
         default: ms = 0;
       }
       e.time += msToBeats(ms);

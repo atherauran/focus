@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Tone from 'tone';
 import type { Params } from './composer/types';
 import { Engine } from './engine/engine';
-import { PRESETS, PRESET_LABEL, PRESET_ORDER, PresetId, loadSaved, save } from './presets';
+import { PRESETS, PRESET_LABEL, PRESET_ORDER, PresetId, loadHistory, loadSaved, save, saveHistory } from './presets';
 
 type Status = 'idle' | 'loading' | 'playing';
 
@@ -63,7 +63,11 @@ export default function App() {
       engine.current = new Engine({
         seed: (Date.now() ^ (Math.random() * 1e9)) >>> 0,
         params: paramsRef.current,
-        onBar: () => setLiveTempo(Math.round(engine.current!.currentTempo)),
+        history: loadHistory(),
+        onBar: (bar) => {
+          setLiveTempo(Math.round(engine.current!.currentTempo));
+          if (bar.bar === 0 && !bar.gap) saveHistory(engine.current!.composer.history);
+        },
       });
     }
     engine.current.tempoOverride = tempo;

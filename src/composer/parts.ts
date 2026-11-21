@@ -1,5 +1,6 @@
 import type { Arrangement } from './arrangements';
 import { BASS_RANGE } from './arrangements';
+import { GROOVE_HITS, Groove } from './grooves';
 import { chordAt } from './melody';
 import type { Rng } from './rng';
 import { Chord, Key, chordFamily, chordScale, chordTones, mod12, nearestPc, stableTones } from './theory';
@@ -11,7 +12,9 @@ export interface PieceState {
   bassLast: number | null;
   pushed: Partial<Record<Role, boolean>>;
   levels: Partial<Record<Role, number>>;
-  habits: { comp: number[]; bass: number[]; kick: number[] };
+  habits: { comp: number[]; bass: number[] };
+  groove: Groove | null;
+  grooveBar: number; // where in the recorded performance the current section loops
 }
 
 export interface BarCtx {
@@ -194,11 +197,14 @@ export function bass(ctx: BarCtx): NoteEvent[] {
       break;
     }
     case 'pedal': {
+      // Bowed bass re-bows every two bars; other instruments hold until the harmony moves.
+      const bowed = inst === 'strings';
       for (const s of ctx.harmony) {
-        const c = changesAt(ctx, s.start) ?? (ctx.sectionBar === 0 && s.start === 0 ? s.chord : null);
+        const rebow = bowed && s.start === 0 && ctx.sectionBar % 2 === 0;
+        const c = changesAt(ctx, s.start) ?? ((ctx.sectionBar === 0 && s.start === 0) || rebow ? s.chord : null);
         if (!c) continue;
         const p = bassNear(bassPc(c), ctx, lo, hi, center - 2);
-        push(s.start, Math.min(ctx.hold(s.start), 12) - 0.1, p, 0.5);
+        push(s.start, Math.min(ctx.hold(s.start), bowed ? B * 2 : 12) - 0.1, p, bowed ? 0.36 + ctx.intensity * 0.3 : 0.5);
       }
       break;
     }
@@ -261,7 +267,7 @@ export function comp(ctx: BarCtx): NoteEvent[] {
   const roleKey = 'comp';
 
   if (ctx.final) {
-    if (mode === 'arp' || mode === 'fingerpick') {
+    if (mode === 'arp' || mode === 'fingerpick' || mode === 'ostinato') {
       const notes = arpNotes(ctx, ctx.harmony[0].chord, 'final');
       notes.forEach((n, i) => out.push(ev(inst, 'comp', i * 0.25, B * 2, n, 0.42 - i * 0.02)));
     } else {
@@ -375,6 +381,30 @@ export function comp(ctx: BarCtx): NoteEvent[] {
       }
       break;
     }
+    case 'ostinato': {
+      // A repeating broken-chord figure with the pedal down: low note, then a voice-led triad above.
+      const P4 = [[0, 1, 2, 3, 2, 1, 2, 3], [0, 2, 1, 2, 3, 2, 1, 2], [0, 1, 3, 2, 1, 3, 2, 3], [0, 3, 1, 2, 0, 3, 1, 2]];
+      const P3 = [[0, 1, 2, 3, 2, 1], [0, 2, 1, 3, 1, 2], [0, 1, 2, 1, 3, 1]];
+      const bank = B === 3 ? P3 : P4;
+      const pat = bank[ctx.state.habits.comp[0] % bank.length];
+      const plucked = inst === 'marimba';
+      const step = activity < 0.22 && !plucked ? 1 : 0.5;
+      for (const s of ctx.harmony) {
+        const c = s.chord;
+        const prevLow = ctx.state.voicing.ostLow?.[0] ?? 43;
+        const low = clampRange(nearestPc(bassPc(c), prevLow), plucked ? 45 : 36, plucked ? 57 : 50);
+        ctx.state.voicing.ostLow = [low];
+        const up = voiceFor(ctx, roleKey, c, { lo: plucked ? 57 : 55, hi: capHi(plucked ? 79 : 74), size: 3, rootless: false, color: 0.15 + complexity * 0.5, center: plucked ? 67 : 63 });
+        const notes = [low, ...up];
+        for (let t = s.start, i = 0; t < s.start + s.dur - 1e-6; t += step, i++) {
+          const k = step === 1 ? [0, 1, 2, 3][i % 4] : pat[i % pat.length];
+          const n = notes[Math.min(k, notes.length - 1)];
+          const vel = (k === 0 ? 0.46 : 0.36) + (t % 1 === 0 ? 0.03 : 0) + (ctx.intensity - 0.5) * 0.12 + rng.range(-0.03, 0.03);
+          out.push(ev(inst, 'comp', t, plucked ? 0.6 : s.start + s.dur - t + 0.3, n, vel));
+        }
+      }
+      break;
+    }
     case 'arp': {
       const rate = activity < 0.25 ? 1 : activity < 0.7 ? 0.5 : 0.5;
       for (const s of ctx.harmony) {
@@ -417,14 +447,18 @@ function arpNotes(ctx: BarCtx, c: Chord, flavor: 'harp' | 'piano' | 'final'): nu
 export function pad(ctx: BarCtx, inst: Inst): NoteEvent[] {
   const out: NoteEvent[] = [];
   const spread = 0.3 + ctx.params.space * 0.7;
+  // A string section re-bows every two bars and swells with the music; synth pads just hold.
+  const bowed = inst === 'strings';
   for (const s of ctx.harmony) {
-    const c = changesAt(ctx, s.start) ?? (ctx.sectionBar === 0 && s.start === 0 ? s.chord : null);
+    const rebow = bowed && s.start === 0 && ctx.sectionBar % 2 === 0;
+    const c = changesAt(ctx, s.start) ?? ((ctx.sectionBar === 0 && s.start === 0) || rebow ? s.chord : null);
     if (!c && !ctx.final) continue;
     const chord = c ?? s.chord;
     const hi = inst === 'bowedvibes' ? 79 : 74 + Math.round(spread * 5);
-    const v = voiceFor(ctx, 'pad', chord, { lo: 50, hi, size: inst === 'bowedvibes' ? 3 : 4, rootless: true, color: 0.35 + ctx.params.complexity * 0.5, spread: true, center: 63 + spread * 3 });
-    const dur = ctx.final ? ctx.beats * 2 : Math.min(ctx.hold(s.start), 16) - 0.05;
-    for (const n of v) out.push(ev(inst, 'pad', s.start, dur, n, 0.42));
+    const v = voiceFor(ctx, 'pad', chord, { lo: bowed ? 52 : 50, hi, size: inst === 'bowedvibes' ? 3 : 4, rootless: true, color: (bowed ? 0.1 : 0.35) + ctx.params.complexity * 0.5, spread: true, center: 63 + spread * 3 });
+    const dur = ctx.final ? ctx.beats * 2 : Math.min(ctx.hold(s.start), bowed ? ctx.beats * 2 : 16) - 0.05;
+    const vel = bowed ? 0.3 + ctx.intensity * 0.35 : 0.42;
+    for (const n of v) out.push(ev(inst, 'pad', s.start, dur, n, vel));
   }
   return out;
 }
@@ -502,25 +536,22 @@ export function drums(ctx: BarCtx): NoteEvent[] {
 
   switch (kit) {
     case 'lofi': {
-      const hatV = 0.32 + energy * 0.14;
-      for (let i = 0; i < B * 2; i++) {
-        const t = i * 0.5;
-        if (fill && t >= 3.5 && rng.chance(0.5)) continue;
-        hit('hat', t, (i % 2 ? hatV * 0.72 : hatV) + rng.range(-0.04, 0.04));
-        if (complexity > 0.45 && rng.chance((complexity - 0.4) * 0.35)) hit('hat', t + 0.25, 0.14);
-      }
-      if (fill && rng.chance(0.4)) hit('hatopen', 3.5, 0.3, 1);
-      if (L > 0.35) {
-        const K = [[0, 2.5], [0, 1.75, 2.5], [0, 0.75, 2.5], [0, 2.5, 2.75], [0, 1.5, 2.5]];
-        let ks = K[ctx.state.habits.kick[ctx.phrasePos % 2] % K.length];
-        if (fill) ks = ks.filter((t) => t < 2.5);
-        for (const t of ks) hit('kick', t, (t === 0 ? 0.78 : 0.62) + rng.range(-0.05, 0.05));
-      }
-      if (L > 0.22) {
-        const snare: DrumHit = L > 0.6 && energy > 0.42 ? 'snare' : 'xstick';
-        for (const t of [1, 3]) hit(snare, t + 0.035, (snare === 'snare' ? 0.55 : 0.6) + rng.range(-0.05, 0.05));
-        if (complexity > 0.35 && rng.chance(complexity * 0.4)) hit('snare', rng.pick([1.75, 2.75, 3.75]), 0.13);
-        if (fill && snare === 'snare') for (const t of [3.25, 3.5, 3.75]) hit('snare', t, 0.16 + (t - 3) * 0.25);
+      // A recorded drummer: each section loops two bars of the performance, with a
+      // different bar at phrase ends. Lower levels thin it to hats, then add the backbeat and kick.
+      const g = ctx.state.groove!;
+      if (ctx.sectionBar === 0) ctx.state.grooveBar = rng.int(0, Math.max(0, g.bars.length - 2));
+      const sb = ctx.sectionBar;
+      const idx = ctx.state.grooveBar + (sb % 4 === 3 ? 2 + ((sb >> 2) % 2) : sb % 2);
+      const bar = g.bars[idx % g.bars.length];
+      const backbeat = L > 0.6 && energy > 0.42;
+      for (const [t, h, v] of bar) {
+        let name = GROOVE_HITS[h];
+        const ghost = v < 0.3;
+        if (ghost && (complexity < 0.35 || L < 0.6)) continue;
+        if (name === 'kick' && L <= 0.4) continue;
+        if ((name === 'snare' || name === 'xstick') && L <= 0.25) continue;
+        if (name === 'snare' && !ghost && !backbeat) name = 'xstick';
+        out.push({ ...ev('drums', 'drums', t, 0.5, 0, v * (0.6 + energy * 0.25), name), fixed: true });
       }
       break;
     }

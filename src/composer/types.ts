@@ -8,8 +8,8 @@ export interface Params {
 }
 
 export type Inst =
-  | 'piano' | 'rhodes' | 'upright' | 'ebass' | 'nylon' | 'jazzgtr' | 'flute'
-  | 'vibes' | 'bowedvibes' | 'glock' | 'harp' | 'pad' | 'drums';
+  | 'piano' | 'felt' | 'rhodes' | 'upright' | 'nylon' | 'flute' | 'clarinet' | 'strings'
+  | 'vibes' | 'bowedvibes' | 'glock' | 'marimba' | 'harp' | 'pad' | 'drums';
 
 export type Role = 'melody' | 'counter' | 'comp' | 'bass' | 'pad' | 'texture' | 'drums';
 
@@ -25,10 +25,12 @@ export interface NoteEvent {
   midi: number; // pitch (unused for drums)
   vel: number; // 0..1 musical dynamic
   hit?: DrumHit;
+  /** timing comes from a real performance: humanizing leaves it alone */
+  fixed?: boolean;
 }
 
-export type Style = 'lofi' | 'jazz' | 'ballad' | 'ambient' | 'bossa' | 'folk' | 'waltz';
-export type Language = 'jazz' | 'lofi' | 'ambient' | 'folk' | 'bossa';
+export type Style = 'lofi' | 'jazz' | 'ballad' | 'ambient' | 'bossa' | 'folk' | 'waltz' | 'cinematic' | 'beats';
+export type Language = 'jazz' | 'lofi' | 'ambient' | 'folk' | 'bossa' | 'cinematic' | 'beats';
 
 export interface Span {
   start: number; // beats within bar
