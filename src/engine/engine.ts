@@ -213,6 +213,11 @@ export class Engine {
     }
   }
 
+  /** Skip ahead to a new piece (after the current one's final chord). */
+  next() {
+    if (this.running) this.composer.advance();
+  }
+
   stop() {
     if (!this.running) return;
     this.running = false;

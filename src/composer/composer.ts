@@ -26,6 +26,7 @@ export class Composer {
   readonly history: History;
   /** the slider settings the current piece was planned for (before drift) */
   private planned!: Params;
+  private advanceRequested = false;
   /** Slow wander of the planning settings from piece to piece, so hours don't sit in one corner. */
   private drift = { energy: 0, mood: 0, complexity: 0 };
 
@@ -44,7 +45,15 @@ export class Composer {
     this.piece = null;
   }
 
+  /** Move on: the current piece plays its final chord next, then segues into a new one. */
+  advance() {
+    // A piece that is only just starting is already the new one.
+    if (this.piece && this.bar > 0) this.advanceRequested = true;
+  }
+
   next(params: Params): Bar {
+    if (this.piece && this.advanceRequested) this.bar = Math.max(this.bar, this.piece.totalBars - 1);
+    this.advanceRequested = false;
     if (this.piece && this.outgrown(params)) this.bar = this.outroStart();
     if (this.piece && this.bar >= this.piece.totalBars) {
       // Plan the next piece now, so the bar between the two can lead into it.

@@ -69,6 +69,22 @@ button:focus-visible, input:focus-visible { outline: 1px solid var(--accent); ou
 .play.loading { animation: breathe 1.4s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: 0.45; } }
 
+/* Next sits to the right of play; an equal empty column on the left keeps play centred. */
+.transport { display: grid; grid-template-columns: 44px auto 44px; align-items: center; gap: 22px; }
+.transport .play { grid-column: 2; }
+.next {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  transition: color 0.2s, background 0.2s, opacity 0.3s;
+}
+.next svg { width: 22px; height: 22px; fill: currentColor; }
+.next:hover:not(:disabled) { color: var(--text); background: var(--accent-soft); }
+.next:disabled { opacity: 0; cursor: default; }
+
 /* Sliders */
 .sliders { width: 100%; display: grid; gap: 18px; }
 .slider { display: grid; grid-template-columns: 100px 1fr; align-items: center; gap: 14px; }

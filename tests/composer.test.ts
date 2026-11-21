@@ -103,6 +103,21 @@ describe('live controls', () => {
     expect(c.current).toBe(sleepy);
   });
 
+  it('next moves on after the final chord, and not twice in a row', () => {
+    const c = new Composer(13);
+    for (let i = 0; i < 10; i++) c.next(PRESETS.study);
+    const before = c.current!;
+    c.advance();
+    const last = c.next(PRESETS.study);
+    expect(last.bar).toBe(before.totalBars - 1);
+    expect(c.next(PRESETS.study).gap).toBe(true);
+    const fresh = c.current!;
+    expect(fresh).not.toBe(before);
+    c.advance(); // pressed again during the segue: ignored
+    expect(c.next(PRESETS.study).bar).toBe(0);
+    expect(c.current).toBe(fresh);
+  });
+
   it('small moves keep the piece going', () => {
     const c = new Composer(12);
     for (let i = 0; i < 12; i++) c.next(PRESETS.study);

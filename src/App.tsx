@@ -99,6 +99,7 @@ export default function App() {
     navigator.mediaSession.metadata = new MediaMetadata({ title: 'Focus' });
     navigator.mediaSession.setActionHandler('play', () => status !== 'playing' && void toggle());
     navigator.mediaSession.setActionHandler('pause', () => status === 'playing' && void toggle());
+    navigator.mediaSession.setActionHandler('nexttrack', () => engine.current?.next());
     navigator.mediaSession.playbackState = status === 'playing' ? 'playing' : 'paused';
   }, [status, toggle]);
 
@@ -127,18 +128,29 @@ export default function App() {
 
   return (
     <main className="app">
-      <button
-        ref={glow}
-        className={`play ${status}`}
-        onClick={() => void toggle()}
-        aria-label={status === 'playing' ? 'Stop' : 'Play'}
-      >
-        {status === 'playing' ? (
-          <svg viewBox="0 0 24 24" aria-hidden><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>
-        ) : (
-          <svg viewBox="0 0 24 24" aria-hidden><path d="M9 6.5v11a.6.6 0 0 0 .9.5l8.6-5.5a.6.6 0 0 0 0-1L9.9 6a.6.6 0 0 0-.9.5z" /></svg>
-        )}
-      </button>
+      <div className="transport">
+        <button
+          ref={glow}
+          className={`play ${status}`}
+          onClick={() => void toggle()}
+          aria-label={status === 'playing' ? 'Stop' : 'Play'}
+        >
+          {status === 'playing' ? (
+            <svg viewBox="0 0 24 24" aria-hidden><rect x="7" y="7" width="10" height="10" rx="1.5" /></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden><path d="M9 6.5v11a.6.6 0 0 0 .9.5l8.6-5.5a.6.6 0 0 0 0-1L9.9 6a.6.6 0 0 0-.9.5z" /></svg>
+          )}
+        </button>
+        <button
+          className="next"
+          onClick={() => engine.current?.next()}
+          disabled={status !== 'playing'}
+          aria-label="Next piece"
+          title="Next piece"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden><path d="M6.5 7.2v9.6a.5.5 0 0 0 .8.4l6.6-4.8a.5.5 0 0 0 0-.8L7.3 6.8a.5.5 0 0 0-.8.4z" /><rect x="15.5" y="6.5" width="2" height="11" rx="0.8" /></svg>
+        </button>
+      </div>
 
       <section className="sliders">
         {SLIDERS.map(({ key, label }) => (
