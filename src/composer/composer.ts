@@ -24,6 +24,8 @@ export class Composer {
   private state!: PieceState;
   private lastChord: Chord | null = null;
   readonly history: History;
+  /** the slider settings the current piece was planned for (before drift) */
+  private planned!: Params;
   /** Slow wander of the planning settings from piece to piece, so hours don't sit in one corner. */
   private drift = { energy: 0, mood: 0, complexity: 0 };
 
@@ -43,6 +45,7 @@ export class Composer {
   }
 
   next(params: Params): Bar {
+    if (this.piece && this.outgrown(params)) this.bar = this.outroStart();
     if (this.piece && this.bar >= this.piece.totalBars) {
       // Plan the next piece now, so the bar between the two can lead into it.
       const prev = this.piece;
@@ -55,7 +58,26 @@ export class Composer {
     return out;
   }
 
+  private outroStart(): number {
+    const p = this.piece!;
+    return p.sectionOf.indexOf(p.sections.length - 1);
+  }
+
+  /**
+   * The sliders have moved far from what this piece was written for (its instruments, key and
+   * tempo can't follow): head for the ending at the next even bar, and the next piece is planned
+   * for the new settings.
+   */
+  private outgrown(params: Params): boolean {
+    const p = this.piece!;
+    const q = this.planned;
+    if (this.bar === 0 || this.bar >= this.outroStart() || p.barInSection[this.bar] % 2 !== 0) return false;
+    const d = Math.hypot((params.energy - q.energy) * 1.4, params.mood - q.mood, (params.space - q.space) * 0.8, (params.complexity - q.complexity) * 0.8);
+    return d > 0.3;
+  }
+
   private startPiece(params: Params) {
+    this.planned = { ...params };
     const d = this.drift;
     const dr = rngFor(this.seed, 'drift', this.pieceCount);
     d.energy = d.energy * 0.5 + dr.range(-0.12, 0.12);
@@ -63,7 +85,6 @@ export class Composer {
     d.complexity = d.complexity * 0.5 + dr.range(-0.12, 0.12);
     const planned = { ...params, energy: clamp01(params.energy + d.energy), mood: clamp01(params.mood + d.mood), complexity: clamp01(params.complexity + d.complexity) };
     const p = planPiece(this.seed, this.pieceCount++, planned, this.history);
-    p.energyAtPlan = params.energy;
     this.piece = p;
     this.bar = 0;
     this.lastChord = null;
@@ -155,9 +176,9 @@ export class Composer {
         continue;
       }
       const cur = lv[role] ?? 0;
-      // Changes driven by the sliders wait for a phrase boundary; section changes don't.
+      // Parts move toward the sliders' levels within a bar or two, fastest at phrase starts.
       // A section that drops the drums cuts them at once (a break, a drop).
-      const step = role === 'melody' || (role === 'drums' && sb === 0 && tgt === 0) ? 1 : sb === 0 || phrasePos === 0 ? 0.34 : 0.12;
+      const step = role === 'melody' || (role === 'drums' && sb === 0 && tgt === 0) ? 1 : sb === 0 || phrasePos === 0 ? 0.4 : 0.25;
       lv[role] = cur + Math.max(-step, Math.min(step, tgt - cur));
     }
 
@@ -200,7 +221,7 @@ export class Composer {
     this.lastChord = harmony[harmony.length - 1].chord;
 
     // Tempo: the piece's tempo, nudged by energy, breathing at phrase ends, slowing to the end.
-    let tempo = p.tempo * (1 + (energy - p.energyAtPlan) * 0.08);
+    let tempo = p.tempo * (1 + (energy - this.planned.energy) * 0.14);
     const rubato = arr.style === 'ballad' || arr.style === 'ambient' || arr.style === 'cinematic';
     if (rubato) tempo *= phrasePos === 3 ? 0.965 : 1 + rng.range(-0.008, 0.012);
     // Beat tapes keep time to the end; everything else slows into the final chord.

@@ -13,7 +13,6 @@ export interface Piece {
   key: Key;
   beats: number;
   tempo: number;
-  energyAtPlan: number;
   form: Form;
   swing: number; // where the off-beat falls (0.5 straight)
   swingUnit: 0.5 | 0.25;
@@ -121,7 +120,7 @@ interface FormCtx {
 const barsOf = (ps: Plan[]) => ps.reduce((n, p) => n + p.block.base.length, 0);
 
 /** Fill the middle with chunks while the piece stays near its target length. */
-function fill(c: FormCtx, head: Plan[], tail: Plan[], chunk: (i: number) => Plan[], max = 3): Plan[] {
+function fill(c: FormCtx, head: Plan[], tail: Plan[], chunk: (i: number) => Plan[], max = 4): Plan[] {
   const middle: Plan[] = [];
   for (let i = 1; i <= max; i++) {
     const next = chunk(i);
@@ -334,7 +333,7 @@ export function planPiece(seed: number, index: number, params: Params, history: 
   });
 
   return {
-    index, seed, arr: { ...arr, style }, key, beats, tempo, energyAtPlan: params.energy, form, swing, swingUnit, groove,
+    index, seed, arr: { ...arr, style }, key, beats, tempo, form, swing, swingUnit, groove,
     sections, melody, sectionOf, barInSection, totalBars: melody.length,
   };
 }

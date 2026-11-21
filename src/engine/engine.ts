@@ -57,7 +57,7 @@ function tanhCurve(drive: number) {
 }
 
 /**
- * Plays whatever the composer writes. Bars are requested one ahead and scheduled on the
+ * Plays whatever the composer writes. Each bar is requested a beat before it starts and scheduled on the
  * transport; global colour (reverb, tone, tape) follows the sliders continuously.
  */
 export class Engine {
@@ -247,9 +247,13 @@ export class Engine {
       this.currentTempo = bpm;
       this.glideTempo(bpm, bar.beats, time);
       this.o.onBar?.(bar);
+    }, `${startTick}i`);
+    // Compose the next bar a beat before it starts, so it hears the latest slider settings.
+    this.transport.scheduleOnce(() => {
+      if (!this.running) return;
       const next = this.composer.next(this.params);
       this.scheduleBar(next, startTick + Math.round(bar.beats * PPQ));
-    }, `${startTick}i`);
+    }, `${startTick + Math.round((bar.beats - 1) * PPQ)}i`);
     for (const e of bar.events) {
       const tick = Math.max(startTick, startTick + Math.round(e.time * PPQ));
       this.transport.scheduleOnce((time) => this.play(e, time), `${tick}i`);

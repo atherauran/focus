@@ -4,10 +4,10 @@ import type { Params } from './composer/types';
 export type PresetId = 'study' | 'reading' | 'coding' | 'sleep' | 'custom';
 
 export const PRESETS: Record<Exclude<PresetId, 'custom'>, Params> = {
-  study: { energy: 0.45, mood: 0.55, space: 0.45, complexity: 0.5 },
-  reading: { energy: 0.28, mood: 0.5, space: 0.55, complexity: 0.4 },
-  coding: { energy: 0.62, mood: 0.45, space: 0.35, complexity: 0.62 },
-  sleep: { energy: 0.08, mood: 0.4, space: 0.85, complexity: 0.18 },
+  study: { energy: 0.5, mood: 0.6, space: 0.4, complexity: 0.4 },
+  reading: { energy: 0.2, mood: 0.45, space: 0.6, complexity: 0.32 },
+  coding: { energy: 0.72, mood: 0.45, space: 0.28, complexity: 0.72 },
+  sleep: { energy: 0.04, mood: 0.35, space: 0.9, complexity: 0.12 },
 };
 
 export const PRESET_ORDER: PresetId[] = ['study', 'reading', 'coding', 'sleep', 'custom'];

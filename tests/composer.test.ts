@@ -6,14 +6,9 @@ import { chordTones, mod12, stableTones } from '../src/composer/theory';
 import type { Bar, Params } from '../src/composer/types';
 import { voice } from '../src/composer/voicing';
 import { parseProgression } from '../src/composer/harmony';
+import { PRESETS } from '../src/presets';
 
 const MID: Params = { energy: 0.5, mood: 0.5, space: 0.5, complexity: 0.5 };
-const PRESETS: Record<string, Params> = {
-  study: { energy: 0.45, mood: 0.55, space: 0.45, complexity: 0.5 },
-  reading: { energy: 0.28, mood: 0.5, space: 0.55, complexity: 0.4 },
-  coding: { energy: 0.62, mood: 0.45, space: 0.35, complexity: 0.62 },
-  sleep: { energy: 0.08, mood: 0.4, space: 0.85, complexity: 0.18 },
-};
 
 function run(seed: number, params: Params, minutes: number): Bar[] {
   const c = new Composer(seed);
@@ -88,6 +83,32 @@ describe('pieces', () => {
       const nextBar = bars[i + 1];
       if (nextBar) expect(nextBar.bar).toBe(0), expect(g.tempo).toBeCloseTo(nextBar.baseTempo, 5), expect(g.key).toEqual(nextBar.key);
     }
+  });
+});
+
+describe('live controls', () => {
+  it('a big slider change ends the piece soon and the next one fits the new settings', () => {
+    const c = new Composer(11);
+    for (let i = 0; i < 20; i++) c.next(PRESETS.coding);
+    const before = c.current!;
+    let bars = 0;
+    while (c.current === before) {
+      c.next(PRESETS.sleep);
+      bars++;
+    }
+    expect(bars).toBeLessThanOrEqual(8);
+    const sleepy = c.current!;
+    // Settles: no further cut while the settings stay put.
+    for (let i = 0; i < 30; i++) c.next(PRESETS.sleep);
+    expect(c.current).toBe(sleepy);
+  });
+
+  it('small moves keep the piece going', () => {
+    const c = new Composer(12);
+    for (let i = 0; i < 12; i++) c.next(PRESETS.study);
+    const piece = c.current;
+    for (let i = 0; i < 12; i++) c.next({ ...PRESETS.study, energy: PRESETS.study.energy + 0.1 });
+    expect(c.current).toBe(piece);
   });
 });
 
